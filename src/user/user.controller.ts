@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Inject, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Inject,
+  Res,
+  Get,
+  Session,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -33,8 +41,28 @@ export class UserController {
     }
   }
 
+  @Post('session-login')
+  async sessionLogin(
+    @Body() user: LoginDto,
+    @Session() session: Record<string, any>,
+  ) {
+    const foundUser = await this.userService.sessionLogin(user);
+
+    session.user = {
+      username: foundUser.username,
+    };
+
+    return 'success';
+  }
+
   @Post('register')
   async register(@Body() user: RegisterDto) {
     return await this.userService.register(user);
+  }
+
+  @Get('init')
+  async initData() {
+    await this.userService.initData();
+    return 'done';
   }
 }
