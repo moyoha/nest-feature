@@ -30,7 +30,6 @@ export class LoginGuard implements CanActivate {
       (req as any).user = info.user;
       return true;
     } catch (e) {
-      console.log(e);
       throw new UnauthorizedException('登录 token 错误');
     }
   }

@@ -8,12 +8,17 @@ export class AppController {
 
   @Get('anyone') // 无需权限就能访问
   anyone(): string {
-    return 'anyone can access this route';
+    return 'anyone';
   }
 
   @UseGuards(LoginGuard)
   @Get('someone') // 需要登录才能访问
   someone(): string {
-    return 'only logged in users can access this route';
+    return 'someone';
+  }
+  @UseGuards(LoginGuard)
+  @Get('someone2') // 需要登录才能访问
+  someone2(): string {
+    return 'someone2';
   }
 }

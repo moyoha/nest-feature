@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>双token验证</title>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+  <script>
+
+    axios.interceptors.request.use(function (config) {
+      const accessToken = localStorage.getItem('access_token');
+
+      if (accessToken) {
+        config.headers.authorization = 'Bearer ' + accessToken;
+      }
+      return config;
+    });
+
+    let refreshing = false;
+    const queue = [];
+
+    axios.interceptors.response.use(
+      (response) => {
+        return response;
+      },
+      async (error) => {
+        let { data, config } = error.response;
+
+        if (refreshing) {
+          // 实际上是在告诉 Axios："这个请求还没有完成，等我将来调用 resolve() 时才算完成"。这保持了完整的异步请求生命周期。
+          // 如果只是存储 config： queue.push(config);  请求会因为没有返回值而终止，客户端永远收不到响应。
+          return new Promise((resolve) => {
+            queue.push({
+              config,
+              resolve
+            });
+          });
+        }
+
+        if (data.statusCode === 401 && !config.url.includes('/user/refresh')) {
+          refreshing = true;
+
+          const res = await refreshToken();
+
+          refreshing = false;
+
+          if (res.status === 200) {
+
+            queue.forEach(({ config, resolve }) => {
+              resolve(axios(config));
+            });
+
+            return axios(config);
+          } else {
+            alert('登录过期，请重新登录');
+            return Promise.reject(res.data);
+          }
+
+        } else {
+          return error.response;
+        }
+      }
+    );
+    async function refreshToken() {
+      const res = await axios.get('http://localhost:3000/user/refresh', {
+        params: {
+          refresh_token: localStorage.getItem('refresh_token')
+        }
+      });
+      localStorage.setItem('access_token', res.data.access_token || '');
+      localStorage.setItem('refresh_token', res.data.refresh_token || '');
+      return res;
+    }
+
+    async function login() {
+      const res = await axios.post('http://localhost:3000/user/login', {
+        username: 'mayoha',
+        password: '123456'
+      });
+      localStorage.setItem('access_token', res.data.access_token);
+      localStorage.setItem('refresh_token', res.data.refresh_token);
+    }
+
+    async function query() {
+      if (!localStorage.getItem('access_token')) {
+        await login();
+      }
+
+
+      axios.get('http://localhost:3000/someone').then((res) => {
+        console.log(res);
+      });
+      axios.get('http://localhost:3000/someone2').then((res) => {
+        console.log(res);
+      });
+      axios.get('http://localhost:3000/someone').then((res) => {
+        console.log(res);
+      });
+    }
+    query()
+  </script>
+</body>
+
+</html>

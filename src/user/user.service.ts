@@ -88,6 +88,14 @@ export class UserService {
     return user;
   }
 
+  async findUserById(userId: number) {
+    return await this.entityManager.findOne(User, {
+      where: {
+        id: userId,
+      },
+    });
+  }
+
   async initData() {
     const permission1 = new Permission();
     permission1.name = 'create_aaa';
